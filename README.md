@@ -25,7 +25,6 @@ Paste this direct command terminal pipeline into your workspace:
 
 ```bash
 curl -sSL [https://raw.githubusercontent.com/neologism-research/git-reset-changes/master/install.sh](https://raw.githubusercontent.com/neologism-research/git-reset-changes/master/install.sh) | bash
-
 ```
 
 ### Method 2: Manual Installation
@@ -35,7 +34,15 @@ Clone this repository, then mark the command executable within your preferred sy
 ```bash
 cp git-reset-changes /usr/local/bin/git-reset-changes
 chmod +x /usr/local/bin/git-reset-changes
+```
 
+### Method 3: Homebrew (Recommended for Mac & Linux)
+
+The cleanest way to install the plugin and keep it updated. This automatically provisions `fzf` if it's missing from your system.
+
+```bash
+brew tap neologism-research/tap
+brew install git-reset-changes
 ```
 
 ## Usage
