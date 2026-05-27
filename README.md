@@ -24,7 +24,7 @@ No individual patch hunting, no messy merge conflicts later—just a streamlined
 Paste this direct command terminal pipeline into your workspace:
 
 ```bash
-curl -sSL [https://raw.githubusercontent.com/USERNAME/git-reset-changes/main/install.sh](https://raw.githubusercontent.com/USERNAME/git-reset-changes/main/install.sh) | bash
+curl -sSL [https://raw.githubusercontent.com/neologism-research/git-reset-changes/master/install.sh](https://raw.githubusercontent.com/neologism-research/git-reset-changes/master/install.sh) | bash
 
 ```
 
