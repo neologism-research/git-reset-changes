@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+
+# Robust Git Extension: git-reset-changes
+# Reverts local files (committed or uncommitted) to match their state in a target branch.
+
+set -uo pipefail
+
+# Color formatting definitions
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+BOLD='\033[1m'
+NC='\033[0;0m' # No Color
+
+log_info() { echo -e "${BLUE}[info]${NC} $1"; }
+log_success() { echo -e "${GREEN}[success]${NC} $1"; }
+log_warn() { echo -e "${YELLOW}[warn]${NC} $1"; }
+log_error() { echo -e "${RED}[error]${NC} $1" >&2; }
+
+show_help() {
+    cat << EOF
+Usage: git reset-changes [branch] [file1 file2 ...]
+
+An interactive TUI utility to safely reset file changes back to their state on a source branch.
+
+Options:
+  -h, --help    Show this help message and exit
+
+Interactive Mode (No Arguments):
+  1. Prompts for a target source branch (fuzzy searchable via fzf).
+  2. Displays all files changed on your current branch or working directory.
+  3. Multi-select files using [Space] or [Tab]. Press [Enter] to confirm execution.
+
+CLI Mode (With Arguments):
+  git reset-changes <branch-name> [path/to/file ...]
+  Instantly resets specified paths to the target branch version without entering the TUI.
+EOF
+}
+
+# 1. Guard Clauses & Validations
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    show_help
+    exit 0
+fi
+
+if ! git rev-parse --is-inside-work-tree &>/dev/null; then
+    log_error "Not a git repository (or any of the parent directories)."
+    exit 1
+fi
+
+# 2. Resolve the Default Fallback Branch
+DEFAULT_BRANCH="main"
+if ! git rev-parse --verify main &>/dev/null; then
+    if git rev-parse --verify master &>/dev/null; then
+        DEFAULT_BRANCH="master"
+    fi
+fi
+
+# 3. Determine Target Source Branch
+SELECTED_BRANCH=""
+if [[ $# -gt 0 ]]; then
+    SELECTED_BRANCH="$1"
+    shift # Consume branch argument
+    
+    if ! git rev-parse --verify "$SELECTED_BRANCH" &>/dev/null; then
+        log_error "The specified branch '$SELECTED_BRANCH' does not exist."
+        exit 1
+    fi
+else
+    if ! command -v fzf &> /dev/null; then
+        log_error "'fzf' is required for interactive mode but was not found."
+        log_info "Please install fzf (e.g., 'brew install fzf') or pass arguments directly."
+        exit 1
+    fi
+
+    # Build searchable branch list with the primary default branch pinned at the top
+    ALL_BRANCHES=$(git branch --format="%(refname:short)" | grep -v "^$DEFAULT_BRANCH$")
+    BRANCH_MENU=$(printf "%s\n%s" "$DEFAULT_BRANCH" "$ALL_BRANCHES")
+    
+    SELECTED_BRANCH=$(echo "$BRANCH_MENU" | fzf \
+        --header="Select target source branch to pull file states from:" \
+        --reverse \
+        --height=40% \
+        --ansi)
+    
+    if [[ -z "$SELECTED_BRANCH" ]]; then
+        log_warn "No branch selected. Operations cancelled."
+        exit 0
+    fi
+fi
+
+# 4. Determine File Array to Process
+FILES_TO_RESTORE=()
+if [[ $# -gt 0 ]]; then
+    # Direct CLI inputs bypass TUI selection
+    for file in "$@"; do
+        FILES
